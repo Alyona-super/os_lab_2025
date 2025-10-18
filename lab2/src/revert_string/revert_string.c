@@ -8,6 +8,7 @@ void RevertString(char *str)
 		char temp=str[i];
 		str[i] =str[length-i-1];
 		str[length-i-1] = temp;
+		//LAB 2 BABAEVA
 	}
 }
 
