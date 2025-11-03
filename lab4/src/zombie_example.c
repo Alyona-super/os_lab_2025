@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 200112L
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -5,12 +6,10 @@
 #include <signal.h>
 #include <string.h>
 
-// Обработчик для SIGCHLD
 void sigchld_handler(int sig) {
     int status;
     pid_t pid;
     
-    // Используем WNOHANG чтобы не блокироваться
     while ((pid = waitpid(-1, &status, WNOHANG)) > 0) {
         printf("[SIGCHLD] Процесс %d завершен с статусом %d\n", pid, WEXITSTATUS(status));
     }
@@ -29,18 +28,15 @@ int main(int argc, char *argv[]) {
     printf("Родительский процесс PID: %d\n", getpid());
 
     if (strcmp(argv[1], "zombie") == 0) {
-        // Режим создания зомби
         printf("\n=== РЕЖИМ: СОЗДАНИЕ ЗОМБИ-ПРОЦЕССА ===\n");
         
         pid_t pid = fork();
         
         if (pid == 0) {
-            // Дочерний процесс
             printf("Дочерний процесс PID: %d\n", getpid());
             printf("Дочерний процесс завершается...\n");
             exit(42);
         } else if (pid > 0) {
-            // Родительский процесс
             printf("Родитель создал дочерний процесс с PID: %d\n", pid);
             printf("Родитель НЕ вызывает wait() - процесс станет зомби!\n");
             printf("Запустите 'ps aux | grep %d' в другой консоли чтобы увидеть зомби\n", pid);
@@ -50,18 +46,15 @@ int main(int argc, char *argv[]) {
         }
 
     } else if (strcmp(argv[1], "wait") == 0) {
-        // Режим нормального завершения с wait
         printf("\n=== РЕЖИМ: НОРМАЛЬНОЕ ЗАВЕРШЕНИЕ С WAIT ===\n");
         
         pid_t pid = fork();
         
         if (pid == 0) {
-            // Дочерний процесс
             printf("Дочерний процесс PID: %d\n", getpid());
             printf("Дочерний процесс завершается...\n");
             exit(42);
         } else if (pid > 0) {
-            // Родительский процесс
             printf("Родитель создал дочерний процесс с PID: %d\n", pid);
             printf("Родитель вызывает wait()...\n");
             
@@ -76,14 +69,12 @@ int main(int argc, char *argv[]) {
         }
 
     } else if (strcmp(argv[1], "signal") == 0) {
-        // Режим с обработчиком сигнала
         printf("\n=== РЕЖИМ: ОБРАБОТЧИК SIGCHLD ===\n");
         
-        // Устанавливаем обработчик для SIGCHLD
         struct sigaction sa;
         sa.sa_handler = sigchld_handler;
         sigemptyset(&sa.sa_mask);
-        sa.sa_flags = SA_RESTART | SA_NOCLDSTOP;
+        sa.sa_flags = 0;
         
         if (sigaction(SIGCHLD, &sa, NULL) == -1) {
             perror("sigaction");
@@ -92,14 +83,13 @@ int main(int argc, char *argv[]) {
         
         printf("Установлен обработчик SIGCHLD\n");
         
-        // Создаем несколько дочерних процессов
+        // Несколько дочерних процессов
         for (int i = 0; i < 3; i++) {
             pid_t pid = fork();
             
             if (pid == 0) {
-                // Дочерний процесс
                 printf("Дочерний процесс %d (PID: %d) запущен\n", i, getpid());
-                sleep(i + 1); // Разное время выполнения
+                sleep(i + 1); // Разное время выполнения для дочерних классов
                 printf("Дочерний процесс %d завершается\n", i);
                 exit(i + 10);
             } else if (pid > 0) {
